@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>실시간 경제 소식 대시보드</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0e1117; color: #e0e0e0; padding: 24px; max-width: 1100px; margin: auto; }
+    h1 { font-size: 1.6rem; margin-bottom: 6px; color: #fff; }
+    .subtitle { font-size: 0.83rem; color: #888; margin-bottom: 28px; }
+    h2 { font-size: 1.1rem; margin-bottom: 14px; color: #fff; }
+    .section { background: #1e2130; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+    /* 시장 지표 */
+    .metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
+    .card { background: #13161e; border-radius: 8px; padding: 14px; text-align: center; }
+    .card .name  { font-size: 0.78rem; color: #aaa; margin-bottom: 4px; }
+    .card .price { font-size: 1.1rem; font-weight: bold; }
+    .card .up    { color: #26a69a; font-size: 0.82rem; }
+    .card .down  { color: #ef5350; font-size: 0.82rem; }
+    /* Fear & Greed */
+    .fg-wrap  { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
+    .fg-stats { display: flex; flex-direction: column; gap: 12px; }
+    .fg-stat  { font-size: 0.9rem; }
+    .fg-label { color: #888; margin-right: 8px; font-size: 0.8rem; }
+    /* 뉴스 */
+    .news-item { background: #13161e; border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; }
+    .news-item .source { font-size: 0.75rem; color: #888; margin-bottom: 3px; }
+    .news-item .title  { font-size: 0.93rem; margin-bottom: 5px; }
+    .news-item a { color: #82aaff; text-decoration: none; }
+    .news-item a:hover { text-decoration: underline; }
+    .news-item .summary { font-size: 0.83rem; color: #b0b8c8; background: #0e1117;
+                           border-radius: 6px; padding: 8px 12px; margin-top: 5px; }
+    footer { text-align: center; color: #555; font-size: 0.78rem; margin-top: 24px; }
+  </style>
+</head>
+<body>
+  <h1>📈 실시간 경제 소식 대시보드</h1>
+  <p class="subtitle">생성: 2026-05-19 14:59:13 &nbsp;|&nbsp; Powered by OpenRouter · yfinance · CNN F&amp;G</p>
+
+  <div class="section">
+    <h2>🌐 시장 지표</h2>
+    <div class="metrics" id="metrics"></div>
+    <canvas id="barChart" height="80"></canvas>
+  </div>
+
+  <div class="section">
+    
+  <h2>😱 CNN Fear &amp; Greed Index</h2>
+  <div class="fg-wrap">
+    <svg viewBox="0 0 200 110" width="280" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 18.00,100.00 A 82,82 0 0,1 42.02,42.02 L 61.82,61.82 A 54,54 0 0,0 46.00,100.00 Z" fill="#b71c1c"/>
+  <path d="M 42.02,42.02 A 82,82 0 0,1 87.17,19.01 L 91.55,46.66 A 54,54 0 0,0 61.82,61.82 Z" fill="#e65100"/>
+  <path d="M 87.17,19.01 A 82,82 0 0,1 112.83,19.01 L 108.45,46.66 A 54,54 0 0,0 91.55,46.66 Z" fill="#f57f17"/>
+  <path d="M 112.83,19.01 A 82,82 0 0,1 157.98,42.02 L 138.18,61.82 A 54,54 0 0,0 108.45,46.66 Z" fill="#33691e"/>
+  <path d="M 157.98,42.02 A 82,82 0 0,1 182.00,100.00 L 154.00,100.00 A 54,54 0 0,0 138.18,61.82 Z" fill="#004d40"/>
+      
+  <line x1="100" y1="100" x2="128.75" y2="31.81"
+        stroke="#66bb6a" stroke-width="3.5" stroke-linecap="round"/>
+  <circle cx="100" cy="100" r="5.5" fill="#66bb6a"/>
+  <text x="100" y="86" text-anchor="middle" fill="white"
+        font-size="20" font-weight="bold" font-family="Segoe UI,sans-serif">62.7</text>
+  <text x="100" y="100" text-anchor="middle" fill="#aaa"
+        font-size="8.5" font-family="Segoe UI,sans-serif">GREED · 탐욕</text>
+    </svg>
+    
+    <div class="fg-stats">
+      <div class="fg-stat"><span class="fg-label">전일</span>62.8 <span style="color:#ef5350">▼0.1</span></div>
+      <div class="fg-stat"><span class="fg-label">1주 전</span>65.1 <span style="color:#ef5350">▼2.4</span></div>
+      <div class="fg-stat"><span class="fg-label">1달 전</span>68.6 <span style="color:#ef5350">▼5.9</span></div>
+    </div>
+  </div>
+  </div>
+
+  <div class="section">
+    <h2>📰 최신 경제 뉴스</h2>
+    <div id="newsList"></div>
+  </div>
+
+  <footer>export_html.py 로 자동 생성된 스냅샷입니다.</footer>
+
+  <script>
+    const market = [{"id": 13, "symbol": "^DJI", "name": "Dow Jones", "price": 49686.12, "change_pct": 0.32, "volume": 520305967.0, "fetched_at": "2026-05-19 14:59:05"}, {"id": 15, "symbol": "GC=F", "name": "Gold", "price": 4543.4, "change_pct": -0.55, "volume": 2054.0, "fetched_at": "2026-05-19 14:59:05"}, {"id": 10, "symbol": "^KQ11", "name": "KOSDAQ", "price": 1089.12, "change_pct": -1.86, "volume": 36790.0, "fetched_at": "2026-05-19 14:59:05"}, {"id": 9, "symbol": "^KS11", "name": "KOSPI", "price": 7346.67, "change_pct": -2.45, "volume": 1034288.0, "fetched_at": "2026-05-19 14:59:05"}, {"id": 12, "symbol": "^IXIC", "name": "NASDAQ", "price": 26090.73, "change_pct": -0.51, "volume": 9000159516.0, "fetched_at": "2026-05-19 14:59:05"}, {"id": 11, "symbol": "^GSPC", "name": "S&P 500", "price": 7403.05, "change_pct": -0.07, "volume": 5501533870.0, "fetched_at": "2026-05-19 14:59:05"}, {"id": 14, "symbol": "KRW=X", "name": "USD/KRW", "price": 1505.58, "change_pct": 1.16, "volume": 0.0, "fetched_at": "2026-05-19 14:59:05"}, {"id": 16, "symbol": "CL=F", "name": "WTI Oil", "price": 103.26, "change_pct": 0.78, "volume": 384620.0, "fetched_at": "2026-05-19 14:59:05"}];
+    const news   = [{"id": 31, "title": "장인유자주광운모, 우시완라이테크놀로지에 214억원 출자", "url": "https://www.yna.co.kr/view/AKR20260519112800008", "source": "연합뉴스 경제", "published_at": "Tue, 19 May 2026 14:46:22 +0900", "summary": "장인유자주광운모가 우시완라이테크놀로지에 214억원을 출자했습니다. 이번 투자는 두 회사 간의 협력을 강화하고, 우시완라이테크놀로지의 성장 가능성을 높이기 위한 전략으로 보입니다.", "fetched_at": "2026-05-19 14:59:03"}, {"id": 32, "title": "'불장'에 투자경고종목 속출 우려?…거래소, 제외대상 확대", "url": "https://www.yna.co.kr/view/AKR20260519083100008", "source": "연합뉴스 경제", "published_at": "Tue, 19 May 2026 14:45:11 +0900", "summary": "경제 뉴스 제목은 최근 주식 시장의 불황 속에서 투자 경고 종목이 증가할 것이라는 우려를 나타내고 있습니다. 이에 따라 거래소는 경고 종목의 제외 대상을 확대할 계획을 세우고 있습니다. 이는 투자자 보호를 위한 조치로 해석됩니다.", "fetched_at": "2026-05-19 14:59:03"}, {"id": 1, "title": "7 things to know before the bell", "url": "http://money.cnn.com/2018/10/04/investing/premarket-stocks-trading/index.html?section=money_topstories", "source": "CNN Money", "published_at": "Thu, 04 Oct 2018 05:10:29 EDT", "summary": "제목 \"7 things to know before the bell\"는 주식 시장 개장 전에 투자자들이 알아야 할 중요한 정보나 트렌드를 정리한 내용을 다룰 것으로 보입니다. 이 기사에서는 경제 지표, 기업 실적, 주요 뉴스 이벤트 등 투자 결정을 돕기 위한 핵심 사항들을 제시할 것입니다. 따라서 투자자들은 이를 통해 시장의 방향성을 예측하고 전략을 세울 수 있습니다.", "fetched_at": "2026-05-19 14:49:11"}, {"id": 2, "title": "SoftBank and Toyota want driverless cars to change the world", "url": "http://money.cnn.com/2018/10/04/technology/softbank-toyota-masa-son/index.html?section=money_topstories", "source": "CNN Money", "published_at": "Thu, 04 Oct 2018 05:27:31 EDT", "summary": "소프트뱅크와 도요타는 자율주행차가 세상을 변화시킬 것이라는 비전을 가지고 협력하고 있습니다. 이들은 기술 혁신을 통해 교통 시스템을 개선하고, 안전성을 높이며, 새로운 비즈니스 모델을 창출하려고 합니다.", "fetched_at": "2026-05-19 14:49:11"}, {"id": 3, "title": "Aston Martin falls 5% in its London IPO", "url": "http://money.cnn.com/2018/10/03/investing/aston-martin-ipo/index.html?section=money_topstories", "source": "CNN Money", "published_at": "Wed, 03 Oct 2018 23:54:24 EDT", "summary": "아스턴 마틴이 런던 증시에서 상장 첫날 5% 하락했습니다. 이는 투자자들의 우려와 시장 반응이 부정적임을 반영하고 있습니다. 상장 후 주가의 하락은 회사의 미래 성장 가능성에 대한 의문을 제기하고 있습니다.", "fetched_at": "2026-05-19 14:49:11"}, {"id": 4, "title": "Barnes & Noble stock soars 20% as it explores a sale", "url": "http://money.cnn.com/2018/10/03/news/companies/barnes-and-noble-sale/index.html?section=money_topstories", "source": "CNN Money", "published_at": "Wed, 03 Oct 2018 19:59:15 EDT", "summary": "Barnes & Noble의 주가가 20% 급등했습니다. 이는 회사가 매각 가능성을 검토하고 있다는 소식에 따른 것입니다. 투자자들은 이 소식에 긍정적인 반응을 보이고 있습니다.", "fetched_at": "2026-05-19 14:49:11"}, {"id": 5, "title": "Why it's time for investors to go on the defense", "url": "http://money.cnn.com/2018/10/03/investing/markets-now-investing-defense/index.html?section=money_topstories", "source": "CNN Money", "published_at": "Wed, 03 Oct 2018 23:28:41 EDT", "summary": "투자자들이 방어적인 전략으로 전환해야 하는 이유에 대한 논의가 이루어지고 있습니다. 시장의 불확실성과 경제적 변동성이 커짐에 따라, 안정적인 자산에 대한 선호가 증가하고 있습니다. 이러한 상황에서 투자자들은 리스크를 줄이고 안전성을 확보하기 위해 방어적인 포트폴리오 구성을 고려해야 합니다.", "fetched_at": "2026-05-19 14:49:11"}, {"id": 6, "title": "The Toys 'R' Us brand may be brought back to life", "url": "http://money.cnn.com/2018/10/03/news/companies/toys-r-us-brand/index.html?section=money_topstories", "source": "CNN Money", "published_at": "Wed, 03 Oct 2018 23:54:17 EDT", "summary": "토이저러스 브랜드가 부활할 가능성이 제기되고 있습니다. 이 소식은 브랜드의 재출시를 위한 계획이 논의되고 있다는 것을 시사하며, 소비자들의 관심을 끌고 있습니다. 브랜드의 부활이 실제로 이루어질 경우, 장난감 시장에 긍정적인 영향을 미칠 것으로 기대됩니다.", "fetched_at": "2026-05-19 14:49:11"}, {"id": 7, "title": "The internet industry is suing California over its net neutrality law", "url": "http://money.cnn.com/2018/10/03/technology/california-net-neutrality-suit/index.html?section=money_topstories", "source": "CNN Money", "published_at": "Wed, 03 Oct 2018 17:46:47 EDT", "summary": "인터넷 산업계가 캘리포니아의 넷 중립성 법안에 대해 소송을 제기했습니다. 이 법안은 인터넷 서비스 제공업체들이 특정 콘텐츠에 대한 접근을 차별하지 못하도록 규정하고 있으며, 산업계는 이러한 규제가 시장에 부정적인 영향을 미친다고 주장하고 있습니다.", "fetched_at": "2026-05-19 14:49:11"}, {"id": 8, "title": "Priyanka Chopra is helping Bumble expand in India", "url": "http://money.cnn.com/2018/10/03/technology/bumble-india-priyanka-chopra/index.html?section=money_topstories", "source": "CNN Money", "published_at": "Wed, 03 Oct 2018 13:40:37 EDT", "summary": "프리얀카 초프라는 인도에서 범블(Bumble)의 확장을 돕고 있습니다. 그녀는 브랜드 앰배서더로서 범블의 인지도를 높이고, 인도 시장에서의 성장 전략을 지원하고 있습니다. 이를 통해 범블은 인도 내에서 더 많은 사용자와 시장 점유율을 확보하려고 합니다.", "fetched_at": "2026-05-19 14:49:11"}, {"id": 9, "title": "Microsoft unveils new Surface devices", "url": "http://money.cnn.com/2018/10/02/technology/microsoft-surface-computers/index.html?section=money_topstories", "source": "CNN Money", "published_at": "Tue, 02 Oct 2018 23:46:21 EDT", "summary": null, "fetched_at": "2026-05-19 14:49:11"}, {"id": 10, "title": "Getting health insurance through work now costs nearly $20,000", "url": "http://money.cnn.com/2018/10/03/news/economy/employer-health-insurance-cost/index.html?section=money_topstories", "source": "CNN Money", "published_at": "Wed, 03 Oct 2018 10:02:47 EDT", "summary": null, "fetched_at": "2026-05-19 14:49:11"}, {"id": 11, "title": "[연합뉴스 이 시각 헤드라인] - 14:30", "url": "https://www.yna.co.kr/view/AKR20260519107100011", "source": "연합뉴스 경제", "published_at": "Tue, 19 May 2026 14:30:00 +0900", "summary": null, "fetched_at": "2026-05-19 14:49:11"}, {"id": 12, "title": "[게시판] NH농협은행, 연세대·NH투자증권과 '농심천심' 실천 협약", "url": "https://www.yna.co.kr/view/AKR20260519108900002", "source": "연합뉴스 경제", "published_at": "Tue, 19 May 2026 14:25:06 +0900", "summary": null, "fetched_at": "2026-05-19 14:49:11"}, {"id": 13, "title": "HD현대중 노조, 정부에 탄원 \"KDDX 사업, 공정히 집행돼야\"", "url": "https://www.yna.co.kr/view/AKR20260519106800057", "source": "연합뉴스 경제", "published_at": "Tue, 19 May 2026 14:23:38 +0900", "summary": null, "fetched_at": "2026-05-19 14:49:11"}, {"id": 14, "title": "타이거리서치 \"美 클래러티법 7월 통과 전망…패러다임 바뀐다\"", "url": "https://www.yna.co.kr/view/AKR20260519108100002", "source": "연합뉴스 경제", "published_at": "Tue, 19 May 2026 14:23:19 +0900", "summary": null, "fetched_at": "2026-05-19 14:49:11"}, {"id": 15, "title": "[게시판] KB국민은행 시니어 레지던스 보증금 승계 서비스", "url": "https://www.yna.co.kr/view/AKR20260519104300002", "source": "연합뉴스 경제", "published_at": "Tue, 19 May 2026 14:22:13 +0900", "summary": null, "fetched_at": "2026-05-19 14:49:11"}, {"id": 16, "title": "테고사이언스 \"피앤피팜 주식 37억원어치 취득…지분율 95.8%\"", "url": "https://www.yna.co.kr/view/AKR20260519107400008", "source": "연합뉴스 경제", "published_at": "Tue, 19 May 2026 14:17:41 +0900", "summary": null, "fetched_at": "2026-05-19 14:49:11"}, {"id": 17, "title": "[게시판] 부산항 시설물 유지보수 업체 신규 선정", "url": "https://www.yna.co.kr/view/AKR20260519106600051", "source": "연합뉴스 경제", "published_at": "Tue, 19 May 2026 14:08:21 +0900", "summary": null, "fetched_at": "2026-05-19 14:49:11"}, {"id": 18, "title": "광주은행 \"지역뿌리 지방은행 통합특별시 금고 운영해야\"", "url": "https://www.yna.co.kr/view/AKR20260519103800054", "source": "연합뉴스 경제", "published_at": "Tue, 19 May 2026 14:07:36 +0900", "summary": null, "fetched_at": "2026-05-19 14:49:11"}, {"id": 19, "title": "부산상의·르노코리아, 판매 증대 캠페인 협약", "url": "https://www.yna.co.kr/view/AKR20260519068300051", "source": "연합뉴스 경제", "published_at": "Tue, 19 May 2026 14:00:06 +0900", "summary": null, "fetched_at": "2026-05-19 14:49:11"}, {"id": 20, "title": "[게시판] 국민연금, 아·태지역 신흥국 공적연금 국제연수 개최", "url": "https://www.yna.co.kr/view/AKR20260519048300530", "source": "연합뉴스 경제", "published_at": "Tue, 19 May 2026 14:00:05 +0900", "summary": null, "fetched_at": "2026-05-19 14:49:11"}];
+
+    // 시장 카드
+    const metricsEl = document.getElementById('metrics');
+    market.forEach(d => {
+      const up = d.change_pct >= 0;
+      metricsEl.innerHTML += `
+        <div class="card">
+          <div class="name">${d.name}</div>
+          <div class="price">${d.price.toLocaleString()}</div>
+          <div class="${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${Math.abs(d.change_pct).toFixed(2)}%</div>
+        </div>`;
+    });
+
+    // 바 차트
+    new Chart(document.getElementById('barChart'), {
+      type: 'bar',
+      data: {
+        labels: market.map(d => d.name),
+        datasets: [{
+          data: market.map(d => d.change_pct),
+          backgroundColor: market.map(d => d.change_pct >= 0 ? '#26a69a' : '#ef5350'),
+        }],
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#aaa' }, grid: { display: false } },
+          y: { ticks: { color: '#aaa' }, grid: { color: '#2a2f45' } },
+        },
+      },
+    });
+
+    // 뉴스
+    const newsEl = document.getElementById('newsList');
+    news.forEach(n => {
+      newsEl.innerHTML += `
+        <div class="news-item">
+          <div class="source">${n.source} · ${n.fetched_at}</div>
+          <div class="title"><a href="${n.url}" target="_blank">${n.title}</a></div>
+          ${n.summary ? `<div class="summary">💡 ${n.summary}</div>` : ''}
+        </div>`;
+    });
+  </script>
+</body>
+</html>

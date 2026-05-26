@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.db
+.pytest_cache/
+*.docx
+재출/
+새 인터넷 바로 가기.url
+ai_prompt_mindmap.html
+최종보고서.html
+.claude/
