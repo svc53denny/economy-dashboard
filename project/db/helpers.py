@@ -1,66 +1,72 @@
-import sqlite3
-from contextlib import contextmanager
-from db.schema import DB_PATH
-
-
-@contextmanager
-def _conn():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    try:
-        yield conn
-        conn.commit()
-    finally:
-        conn.close()
+from db.supabase_client import get_supabase
 
 
 def insert_news(title: str, url: str, source: str, published_at: str) -> None:
-    with _conn() as conn:
-        conn.execute(
-            "INSERT OR IGNORE INTO news (title, url, source, published_at) VALUES (?,?,?,?)",
-            (title, url, source, published_at),
-        )
+    get_supabase().table("items").upsert(
+        {"type": "news", "title": title, "url": url,
+         "source": source, "published_at": published_at},
+        on_conflict="url",
+        ignore_duplicates=True,
+    ).execute()
 
 
 def update_news_summary(url: str, summary: str) -> None:
-    with _conn() as conn:
-        conn.execute("UPDATE news SET summary=? WHERE url=?", (summary, url))
+    get_supabase().table("items").update(
+        {"summary": summary}
+    ).eq("type", "news").eq("url", url).execute()
 
 
 def get_recent_news(limit: int = 30) -> list[dict]:
-    with _conn() as conn:
-        rows = conn.execute(
-            "SELECT * FROM news ORDER BY fetched_at DESC LIMIT ?", (limit,)
-        ).fetchall()
-    return [dict(r) for r in rows]
+    res = (
+        get_supabase()
+        .table("items")
+        .select("*")
+        .eq("type", "news")
+        .order("fetched_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return res.data
 
 
 def get_unsummarized_news(limit: int = 5) -> list[dict]:
-    with _conn() as conn:
-        rows = conn.execute(
-            "SELECT * FROM news WHERE summary IS NULL ORDER BY fetched_at DESC LIMIT ?",
-            (limit,),
-        ).fetchall()
-    return [dict(r) for r in rows]
+    res = (
+        get_supabase()
+        .table("items")
+        .select("*")
+        .eq("type", "news")
+        .is_("summary", "null")
+        .order("fetched_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return res.data
 
 
-def upsert_market_data(symbol: str, name: str, price: float, change_pct: float, volume: float) -> None:
-    with _conn() as conn:
-        conn.execute(
-            "INSERT INTO market_data (symbol, name, price, change_pct, volume) VALUES (?,?,?,?,?)",
-            (symbol, name, price, change_pct, volume),
-        )
+def upsert_market_data(
+    symbol: str, name: str, price: float, change_pct: float, volume: float
+) -> None:
+    get_supabase().table("items").insert(
+        {"type": "market", "symbol": symbol, "name": name,
+         "price": price, "change_pct": change_pct, "volume": volume}
+    ).execute()
 
 
 def get_latest_market_data() -> list[dict]:
-    with _conn() as conn:
-        rows = conn.execute("""
-            SELECT m.*
-            FROM market_data m
-            INNER JOIN (
-                SELECT symbol, MAX(id) AS max_id
-                FROM market_data GROUP BY symbol
-            ) latest ON m.id = latest.max_id
-            ORDER BY m.name
-        """).fetchall()
-    return [dict(r) for r in rows]
+    res = (
+        get_supabase()
+        .table("items")
+        .select("*")
+        .eq("type", "market")
+        .order("id", desc=True)
+        .execute()
+    )
+    seen: set[str] = set()
+    latest: list[dict] = []
+    for row in res.data:
+        sym = row.get("symbol") or ""
+        if sym and sym not in seen:
+            seen.add(sym)
+            latest.append(row)
+    latest.sort(key=lambda x: x.get("name") or "")
+    return latest

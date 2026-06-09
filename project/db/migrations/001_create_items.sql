@@ -1,5 +1,6 @@
-# Supabase SQL 에디터에서 한 번 실행해 테이블을 생성하세요.
-ITEMS_TABLE_SQL = """
+-- Supabase SQL 에디터에서 실행하세요.
+-- Dashboard → SQL Editor → New Query → 아래 SQL 붙여넣기 → Run
+
 CREATE TABLE IF NOT EXISTS items (
     id           BIGSERIAL PRIMARY KEY,
     type         TEXT NOT NULL CHECK (type IN ('news', 'market')),
@@ -21,17 +22,6 @@ CREATE INDEX IF NOT EXISTS idx_items_type_fetched
 
 CREATE INDEX IF NOT EXISTS idx_items_market_sym
     ON items(symbol, fetched_at DESC) WHERE type = 'market';
-"""
 
-
-def init_db() -> None:
-    """Supabase 연결 및 items 테이블 접근 가능 여부 확인."""
-    from db.supabase_client import get_supabase
-    try:
-        get_supabase().table("items").select("id").limit(1).execute()
-    except Exception as exc:
-        raise RuntimeError(
-            "Supabase 'items' 테이블에 접근할 수 없습니다.\n"
-            "Supabase SQL 에디터에서 schema.py 의 ITEMS_TABLE_SQL 을 실행해 주세요.\n"
-            f"원인: {exc}"
-        ) from exc
+-- 서버 사이드 앱이므로 RLS 비활성화 (publishable key로 모든 CRUD 허용)
+ALTER TABLE items DISABLE ROW LEVEL SECURITY;
