@@ -11,3 +11,4 @@ venv/
 ai_prompt_mindmap.html
 최종보고서.html
 .claude/
+.playwright-mcp/
