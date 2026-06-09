@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>실시간 경제 소식 대시보드</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0e1117; color: #e0e0e0; padding: 24px; max-width: 1100px; margin: auto; }
+    h1 { font-size: 1.6rem; margin-bottom: 6px; color: #fff; }
+    .subtitle { font-size: 0.83rem; color: #888; margin-bottom: 28px; }
+    h2 { font-size: 1.1rem; margin-bottom: 14px; color: #fff; }
+    .section { background: #1e2130; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+    /* 시장 지표 */
+    .metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
+    .card { background: #13161e; border-radius: 8px; padding: 14px; text-align: center; }
+    .card .name  { font-size: 0.78rem; color: #aaa; margin-bottom: 4px; }
+    .card .price { font-size: 1.1rem; font-weight: bold; }
+    .card .up    { color: #26a69a; font-size: 0.82rem; }
+    .card .down  { color: #ef5350; font-size: 0.82rem; }
+    /* Fear & Greed */
+    .fg-wrap  { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
+    .fg-stats { display: flex; flex-direction: column; gap: 12px; }
+    .fg-stat  { font-size: 0.9rem; }
+    .fg-label { color: #888; margin-right: 8px; font-size: 0.8rem; }
+    /* 뉴스 */
+    .news-item { background: #13161e; border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; }
+    .news-item .source { font-size: 0.75rem; color: #888; margin-bottom: 3px; }
+    .news-item .title  { font-size: 0.93rem; margin-bottom: 5px; }
+    .news-item a { color: #82aaff; text-decoration: none; }
+    .news-item a:hover { text-decoration: underline; }
+    .news-item .summary { font-size: 0.83rem; color: #b0b8c8; background: #0e1117;
+                           border-radius: 6px; padding: 8px 12px; margin-top: 5px; }
+    footer { text-align: center; color: #555; font-size: 0.78rem; margin-top: 24px; }
+  </style>
+</head>
+<body>
+  <h1>📈 실시간 경제 소식 대시보드</h1>
+  <p class="subtitle">생성: 2026-06-09 13:46:18 &nbsp;|&nbsp; Powered by OpenRouter · yfinance · CNN F&amp;G</p>
+
+  <div class="section">
+    <h2>🌐 시장 지표</h2>
+    <div class="metrics" id="metrics"></div>
+    <canvas id="barChart" height="80"></canvas>
+  </div>
+
+  <div class="section">
+    
+  <h2>😱 CNN Fear &amp; Greed Index</h2>
+  <div class="fg-wrap">
+    <svg viewBox="0 0 200 110" width="280" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 18.00,100.00 A 82,82 0 0,1 42.02,42.02 L 61.82,61.82 A 54,54 0 0,0 46.00,100.00 Z" fill="#b71c1c"/>
+  <path d="M 42.02,42.02 A 82,82 0 0,1 87.17,19.01 L 91.55,46.66 A 54,54 0 0,0 61.82,61.82 Z" fill="#e65100"/>
+  <path d="M 87.17,19.01 A 82,82 0 0,1 112.83,19.01 L 108.45,46.66 A 54,54 0 0,0 91.55,46.66 Z" fill="#f57f17"/>
+  <path d="M 112.83,19.01 A 82,82 0 0,1 157.98,42.02 L 138.18,61.82 A 54,54 0 0,0 108.45,46.66 Z" fill="#33691e"/>
+  <path d="M 157.98,42.02 A 82,82 0 0,1 182.00,100.00 L 154.00,100.00 A 54,54 0 0,0 138.18,61.82 Z" fill="#004d40"/>
+      
+  <line x1="100" y1="100" x2="77.35" y2="29.55"
+        stroke="#ff9800" stroke-width="3.5" stroke-linecap="round"/>
+  <circle cx="100" cy="100" r="5.5" fill="#ff9800"/>
+  <text x="100" y="86" text-anchor="middle" fill="white"
+        font-size="20" font-weight="bold" font-family="Segoe UI,sans-serif">40.1</text>
+  <text x="100" y="100" text-anchor="middle" fill="#aaa"
+        font-size="8.5" font-family="Segoe UI,sans-serif">FEAR · 공포</text>
+    </svg>
+    
+    <div class="fg-stats">
+      <div class="fg-stat"><span class="fg-label">전일</span>40.1 <span style="color:#26a69a">▲0.0</span></div>
+      <div class="fg-stat"><span class="fg-label">1주 전</span>56.1 <span style="color:#ef5350">▼16.0</span></div>
+      <div class="fg-stat"><span class="fg-label">1달 전</span>67.3 <span style="color:#ef5350">▼27.2</span></div>
+    </div>
+  </div>
+  </div>
+
+  <div class="section">
+    <h2>📰 최신 경제 뉴스</h2>
+    <div id="newsList"></div>
+  </div>
+
+  <footer>export_html.py 로 자동 생성된 스냅샷입니다.</footer>
+
+  <script>
+    const market = [{"id": 261, "symbol": "^DJI", "name": "Dow Jones", "price": 50786.01, "change_pct": -0.16, "volume": 517564285.0, "fetched_at": "2026-06-09 13:41:11"}, {"id": 263, "symbol": "GC=F", "name": "Gold", "price": 4352.8, "change_pct": -0.15, "volume": 3696.0, "fetched_at": "2026-06-09 13:41:11"}, {"id": 258, "symbol": "^KQ11", "name": "KOSDAQ", "price": 973.25, "change_pct": 5.57, "volume": 230780.0, "fetched_at": "2026-06-09 13:41:11"}, {"id": 257, "symbol": "^KS11", "name": "KOSPI", "price": 7980.36, "change_pct": 6.36, "volume": 863722.0, "fetched_at": "2026-06-09 13:41:11"}, {"id": 260, "symbol": "^IXIC", "name": "NASDAQ", "price": 25929.66, "change_pct": 0.86, "volume": 9169036825.0, "fetched_at": "2026-06-09 13:41:11"}, {"id": 259, "symbol": "^GSPC", "name": "S&P 500", "price": 7405.73, "change_pct": 0.3, "volume": 5479055238.0, "fetched_at": "2026-06-09 13:41:11"}, {"id": 262, "symbol": "KRW=X", "name": "USD/KRW", "price": 1516.5, "change_pct": -0.68, "volume": 0.0, "fetched_at": "2026-06-09 13:41:11"}, {"id": 264, "symbol": "CL=F", "name": "WTI Oil", "price": 90.27, "change_pct": -0.82, "volume": 318902.0, "fetched_at": "2026-06-09 13:41:11"}];
+    const news   = [{"id": 601, "title": "코스피, 장중 7% 넘게 급등해 '8천피' 회복", "url": "https://www.yna.co.kr/view/AKR20260609099700008", "source": "연합뉴스 경제", "published_at": "Tue, 9 Jun 2026 13:36:26 +0900", "summary": "코스피 지수가 장중 7% 이상 급등하며 8천 포인트를 회복했습니다. 이는 시장의 긍정적인 반응과 함께 투자자들의 매수세가 강하게 작용한 결과로 보입니다. 이러한 상승세는 경제 회복에 대한 기대감을 반영하고 있습니다.", "fetched_at": "2026-06-09 13:41:13"}, {"id": 602, "title": "메타랩스 \"자회사 메타케어 주식 60억원에 추가취득\"", "url": "https://www.yna.co.kr/view/AKR20260609093700008", "source": "연합뉴스 경제", "published_at": "Tue, 9 Jun 2026 13:31:19 +0900", "summary": "메타랩스가 자회사인 메타케어의 주식을 60억원에 추가로 취득한다고 발표했습니다. 이번 주식 매입은 메타케어의 사업 확장과 성장 가능성을 높이기 위한 전략으로 해석됩니다.", "fetched_at": "2026-06-09 13:41:13"}, {"id": 603, "title": "메타랩스, 60억원 유상증자…주식회사 메타약품에 제3자배정", "url": "https://www.yna.co.kr/view/AKR20260609092000008", "source": "연합뉴스 경제", "published_at": "Tue, 9 Jun 2026 13:30:59 +0900", "summary": "메타랩스가 60억원 규모의 유상증자를 실시하며, 이 자금은 주식회사 메타약품에 제3자배정 방식으로 제공될 예정이다. 이번 유상증자는 메타랩스의 자본 확충과 사업 확장을 위한 전략으로 풀이된다.", "fetched_at": "2026-06-09 13:41:13"}, {"id": 581, "title": "[속보] 코스피, 장중 급등해 '8천피' 회복", "url": "https://www.yna.co.kr/view/AKR20260609097600008", "source": "연합뉴스 경제", "published_at": "Tue, 9 Jun 2026 13:27:51 +0900", "summary": "코스피가 장중에 급등하며 8천 포인트를 회복했습니다. 이는 투자자들의 긍정적인 심리와 함께 시장의 전반적인 회복세를 반영하는 것으로 보입니다.", "fetched_at": "2026-06-09 13:35:04"}, {"id": 561, "title": "K-콘텐츠 침해사범 끝까지 쫓는다…문체부, 국제 수사공조 강화", "url": "https://www.yna.co.kr/view/AKR20260609034600005", "source": "연합뉴스 경제", "published_at": "Tue, 9 Jun 2026 13:00:01 +0900", "summary": "문화체육관광부는 K-콘텐츠의 침해사범을 끝까지 추적하기 위해 국제 수사공조를 강화하겠다고 발표했다. 이를 통해 해외에서 발생하는 저작권 침해를 효과적으로 대응하고, K-콘텐츠의 보호를 강화할 계획이다.", "fetched_at": "2026-06-09 13:25:13"}, {"id": 521, "title": "\"수입 마라 간식 주의\"…일부 제품 세균 검출에 나트륨·당 과다", "url": "https://www.yna.co.kr/view/AKR20260608130500030", "source": "연합뉴스 경제", "published_at": "Tue, 9 Jun 2026 12:00:22 +0900", "summary": "일부 수입 마라 간식에서 세균이 검출되었으며, 나트륨과 당 함량이 과다한 것으로 나타났다. 소비자들은 이러한 제품을 주의해야 하며, 건강에 미치는 영향을 고려할 필요가 있다.", "fetched_at": "2026-06-09 12:25:33"}, {"id": 522, "title": "\"국외 카드도용 피해 처리만 수개월…해외사용 안심설정 활용\"", "url": "https://www.yna.co.kr/view/AKR20260609064500002", "source": "연합뉴스 경제", "published_at": "Tue, 9 Jun 2026 12:00:13 +0900", "summary": "국외 카드도용 피해를 처리하는 데 수개월이 걸리고 있어 소비자들이 어려움을 겪고 있다. 이에 따라 해외에서 카드 사용 시 안심설정을 활용하는 것이 권장되고 있다. 이를 통해 카드 도용 피해를 예방할 수 있는 방법이 제시되고 있다.", "fetched_at": "2026-06-09 12:25:33"}, {"id": 523, "title": "쿠팡 와우회원가? 가입하니 일회성…법정최고 5억 과징금 부과", "url": "https://www.yna.co.kr/view/AKR20260609084500002", "source": "연합뉴스 경제", "published_at": "Tue, 9 Jun 2026 12:00:03 +0900", "summary": "쿠팡이 와우회원 가입 시 제공한 혜택이 일회성으로 밝혀져 논란이 일고 있다. 이에 따라 공정거래위원회는 쿠팡에 대해 법정 최고액인 5억 원의 과징금을 부과하기로 결정했다. 이는 소비자 보호와 관련된 문제로, 기업의 마케팅 관행에 대한 경각심을 일으키고 있다.", "fetched_at": "2026-06-09 12:25:33"}, {"id": 524, "title": "자필 차용증·지인 연락처 10개씩 담보로 연이율 4만% 뜯어내", "url": "https://www.yna.co.kr/view/AKR20260609059200004", "source": "연합뉴스 경제", "published_at": "Tue, 9 Jun 2026 12:00:02 +0900", "summary": "한 대부업체가 자필 차용증과 지인 연락처를 담보로 연이율 4만%에 달하는 고리대금을 요구한 사건이 발생했다. 이로 인해 피해자들은 막대한 이자 부담에 시달리고 있으며, 법적 대응이 필요하다는 목소리가 커지고 있다.", "fetched_at": "2026-06-09 12:25:33"}, {"id": 525, "title": "안전공업 화재에 제조업 고용 감소폭 확대…건설업 한파도 계속", "url": "https://www.yna.co.kr/view/AKR20260609085300530", "source": "연합뉴스 경제", "published_at": "Tue, 9 Jun 2026 12:00:01 +0900", "summary": "안전공업에서 발생한 화재로 인해 제조업의 고용 감소폭이 확대되고 있으며, 건설업도 여전히 어려운 상황이 지속되고 있습니다. 이로 인해 전반적인 경제 활동에 부정적인 영향을 미치고 있습니다.", "fetched_at": "2026-06-09 12:25:33"}, {"id": 526, "title": "와이파이로 학폭 감지·한국어 연습앱…중기부, '모두의 창업' 선발", "url": "https://www.yna.co.kr/view/AKR20260609063400030", "source": "연합뉴스 경제", "published_at": "Tue, 9 Jun 2026 12:00:00 +0900", "summary": "중소벤처기업부가 '모두의 창업' 프로그램을 통해 와이파이를 이용한 학교 폭력 감지 시스템과 한국어 연습 애플리케이션 등 혁신적인 스타트업을 선발했다. 이 프로그램은 창의적인 아이디어를 가진 중소기업과 창업자들을 지원하여 사회 문제 해결에 기여하고자 한다.", "fetched_at": "2026-06-09 12:25:33"}, {"id": 527, "title": "메타케어, 60억원 제3자배정 유상증자", "url": "https://www.yna.co.kr/view/AKR20260609090700008", "source": "연합뉴스 경제", "published_at": "Tue, 9 Jun 2026 11:59:41 +0900", "summary": "메타케어가 60억원 규모의 제3자배정 유상증자를 실시합니다. 이번 자금 조달은 회사의 성장과 사업 확장을 위한 재원으로 활용될 예정입니다.", "fetched_at": "2026-06-09 12:25:33"}, {"id": 528, "title": "금투협 \"나이스신용평가, 신평사 역량평가에서 '가장 우수'\"", "url": "https://www.yna.co.kr/view/AKR20260609090500008", "source": "연합뉴스 경제", "published_at": "Tue, 9 Jun 2026 11:59:12 +0900", "summary": "금융투자협회는 나이스신용평가가 신용평가사 역량평가에서 가장 우수한 평가를 받았다고 발표했다. 이는 나이스신용평가의 신뢰성과 전문성을 인정받은 결과로, 금융 시장에서의 경쟁력을 강화하는 데 기여할 것으로 보인다.", "fetched_at": "2026-06-09 12:25:33"}, {"id": 529, "title": "'초록 말차·보랏빛 우베'…입소문 탄 식재료에 식품업계 '들썩'", "url": "https://www.yna.co.kr/view/AKR20260609087200030", "source": "연합뉴스 경제", "published_at": "Tue, 9 Jun 2026 11:53:32 +0900", "summary": "최근 '초록 말차'와 '보랏빛 우베'와 같은 새로운 식재료가 입소문을 타면서 식품업계가 활기를 띠고 있다. 이들 식재료는 소비자들 사이에서 인기를 끌며 다양한 제품에 활용되고 있으며, 식품업체들은 이를 반영한 신제품 출시를 늘리고 있다. 이러한 트렌드는 건강과 색다른 맛을 추구하는 소비자들의 관심을 반영하고 있다.", "fetched_at": "2026-06-09 12:25:33"}, {"id": 530, "title": "국고채 금리 일제히 하락…3년물 장중 연 3.889%", "url": "https://www.yna.co.kr/view/AKR20260609088300008", "source": "연합뉴스 경제", "published_at": "Tue, 9 Jun 2026 11:44:48 +0900", "summary": "국고채 금리가 전반적으로 하락하며, 3년물 금리는 장중 3.889%를 기록했습니다. 이는 시장의 금리 인하 기대감과 경제 상황에 대한 반응으로 해석됩니다. 이러한 금리 하락은 정부의 재정 운영과 투자 환경에 긍정적인 영향을 미칠 수 있습니다.", "fetched_at": "2026-06-09 12:25:33"}, {"id": 491, "title": "달러-원, 美·이란 종전 협상 초치는 신경전…낙폭 축소", "url": "https://www.yna.co.kr/view/AKR20260527003400002", "source": "연합뉴스 경제", "published_at": "Wed, 27 May 2026 03:36:23 +0900", "summary": "달러-원 환율이 미국과 이란 간의 종전 협상에 대한 긴장감으로 인해 변동성을 보이고 있으며, 최근에는 하락폭이 줄어들고 있습니다. 시장에서는 이러한 외부 요인이 환율에 미치는 영향을 주의 깊게 지켜보고 있습니다.", "fetched_at": "2026-05-27 03:49:12"}, {"id": 451, "title": "3기신도시 남양주왕숙2 첫 공급서 특공 세자릿수 경쟁률", "url": "https://www.yna.co.kr/view/AKR20260526171700003", "source": "연합뉴스 경제", "published_at": "Tue, 26 May 2026 21:01:22 +0900", "summary": "3기 신도시 남양주왕숙2에서 첫 공급된 주택에 대해 특별공급에 세 자릿수의 높은 경쟁률이 나타났습니다. 이는 해당 지역의 주택 수요가 여전히 강하다는 것을 보여줍니다. 이러한 경쟁률은 향후 주택 시장에 긍정적인 영향을 미칠 것으로 예상됩니다.", "fetched_at": "2026-05-27 03:29:13"}, {"id": 452, "title": "국민성장펀드 이틀 만에 97.5% 팔려…은행, 온·오프라인 완판", "url": "https://www.yna.co.kr/view/AKR20260526169500002", "source": "연합뉴스 경제", "published_at": "Tue, 26 May 2026 20:13:44 +0900", "summary": "국민성장펀드가 출시 이틀 만에 97.5%의 판매율을 기록하며 완판되었습니다. 은행은 온라인과 오프라인 모두에서 투자자들의 큰 관심을 끌어 성공적인 판매를 이뤘습니다.", "fetched_at": "2026-05-27 03:29:13"}, {"id": 453, "title": "라클라체자이드파인 무순위 청약 경쟁률 최고 1천726대 1", "url": "https://www.yna.co.kr/view/AKR20260526169000003", "source": "연합뉴스 경제", "published_at": "Tue, 26 May 2026 20:04:35 +0900", "summary": "라클라체자이드파인 아파트의 무순위 청약에서 경쟁률이 최고 1,726대 1에 달했다. 이는 높은 수요를 반영하며, 많은 사람들이 해당 아파트에 관심을 보이고 있음을 나타낸다.", "fetched_at": "2026-05-27 03:29:13"}, {"id": 454, "title": "내년 최저임금 2차심의…사용자 \"업종 구분\" 근로자 \"도급 적용\"(종합)", "url": "https://www.yna.co.kr/view/AKR20260526133651530", "source": "연합뉴스 경제", "published_at": "Tue, 26 May 2026 19:24:58 +0900", "summary": "내년 최저임금에 대한 2차 심의가 진행되고 있으며, 사용자 측은 업종 구분을 요구하고 있는 반면, 근로자 측은 도급 적용을 주장하고 있습니다. 이로 인해 최저임금 결정 과정에서 이해관계자 간의 의견 차이가 나타나고 있습니다.", "fetched_at": "2026-05-27 03:29:13"}, {"id": 455, "title": "최운열 한국공인회계사회장 연임 확정…단독 입후보", "url": "https://www.yna.co.kr/view/AKR20260526163200002", "source": "연합뉴스 경제", "published_at": "Tue, 26 May 2026 18:52:51 +0900", "summary": "최운열 한국공인회계사회장이 단독으로 입후보하여 연임이 확정되었습니다. 이는 그가 회계사회의 지속적인 발전과 안정성을 위해 계속해서 리더십을 발휘할 기회를 가지게 됨을 의미합니다.", "fetched_at": "2026-05-27 03:29:13"}, {"id": 456, "title": "'T+1 결제주기 단축' 토론회…핵심은 '속도보다 안정적 이행'", "url": "https://www.yna.co.kr/view/AKR20260526161400008", "source": "연합뉴스 경제", "published_at": "Tue, 26 May 2026 18:41:40 +0900", "summary": "'T+1 결제주기 단축'에 대한 토론회에서 참석자들은 결제주기를 단축하는 것보다 안정적인 이행이 더 중요하다는 점을 강조했습니다. 이들은 빠른 결제 시스템이 필요하지만, 그 과정에서 발생할 수 있는 리스크를 최소화하는 것이 우선시되어야 한다고 의견을 모았습니다.", "fetched_at": "2026-05-27 03:29:13"}, {"id": 457, "title": "삼성전자, 프리마켓 시초가 18% 급락해 '시끌'…주문실수?", "url": "https://www.yna.co.kr/view/AKR20260526160900008", "source": "연합뉴스 경제", "published_at": "Tue, 26 May 2026 18:33:09 +0900", "summary": "삼성전자의 프리마켓에서 시초가가 18% 급락하며 시장에 큰 충격을 주었다. 이 급락은 주문 실수로 인한 것이라는 의혹이 제기되고 있다. 투자자들은 이 상황에 대해 우려를 표하고 있다.", "fetched_at": "2026-05-27 03:29:13"}, {"id": 458, "title": "[연합뉴스 이 시각 헤드라인] - 18:00", "url": "https://www.yna.co.kr/view/AKR20260526153200011", "source": "연합뉴스 경제", "published_at": "Tue, 26 May 2026 18:00:02 +0900", "summary": "제목만으로는 구체적인 내용을 파악할 수 없으므로, 해당 뉴스의 핵심 내용을 요약하기 위해서는 추가적인 정보가 필요합니다. 제목 아래에 있는 내용을 제공해 주시면 요약해 드리겠습니다.", "fetched_at": "2026-05-27 03:29:13"}, {"id": 459, "title": "수공, 병입 수돗물 대용량 비율 확대…\"나프타 수급 불안 대응\"", "url": "https://www.yna.co.kr/view/AKR20260526155400063", "source": "연합뉴스 경제", "published_at": "Tue, 26 May 2026 17:49:38 +0900", "summary": "수공이 병입 수돗물의 대용량 비율을 확대하기로 결정했습니다. 이는 나프타 수급의 불안정성에 대응하기 위한 조치로, 안정적인 물 공급을 목표로 하고 있습니다.", "fetched_at": "2026-05-27 03:29:13"}, {"id": 460, "title": "예산실장 \"문화산업은 핵심 성장동력…분야별 맞춤형 지원\"", "url": "https://www.yna.co.kr/view/AKR20260526155000002", "source": "연합뉴스 경제", "published_at": "Tue, 26 May 2026 17:46:02 +0900", "summary": "예산실장은 문화산업이 국가 경제의 핵심 성장동력이라고 강조하며, 각 분야에 맞춤형 지원을 통해 이 산업을 발전시킬 계획이라고 밝혔습니다. 이를 통해 문화산업의 경쟁력을 높이고, 경제 성장을 촉진할 방침입니다.", "fetched_at": "2026-05-27 03:29:13"}, {"id": 81, "title": "서울시 \"GTX 철근누락 6차례 통보\" vs 국토부 \"별도보고 없었어\"(종합3보)", "url": "https://www.yna.co.kr/view/AKR20260525035353004", "source": "연합뉴스 경제", "published_at": "Mon, 25 May 2026 22:59:55 +0900", "summary": "서울시는 GTX 건설 과정에서 철근 누락 문제를 6차례 통보했으나, 국토교통부는 이에 대한 별도의 보고가 없었다고 반박했다. 이로 인해 두 기관 간의 정보 공유와 책임 문제에 대한 논란이 일고 있다.", "fetched_at": "2026-05-26 00:10:12"}, {"id": 82, "title": "서울시 \"GTX-A 철근 누락 6차례 통보…국토부가 불안 야기\"(종합2보)", "url": "https://www.yna.co.kr/view/AKR20260525035352004", "source": "연합뉴스 경제", "published_at": "Mon, 25 May 2026 22:00:11 +0900", "summary": "서울시는 GTX-A 노선의 철근 누락 문제를 6차례 국토부에 통보했으며, 이로 인해 안전에 대한 우려가 커지고 있다고 밝혔다. 국토부의 대응이 미흡하다는 지적이 제기되고 있다.", "fetched_at": "2026-05-26 00:10:12"}, {"id": 83, "title": "현대건설, 5.5조원 정비사업 '최대어' 압구정3구역 수주", "url": "https://www.yna.co.kr/view/AKR20260525051500003", "source": "연합뉴스 경제", "published_at": "Mon, 25 May 2026 17:31:13 +0900", "summary": "현대건설이 5.5조원 규모의 정비사업인 압구정3구역을 수주했습니다. 이번 수주는 현대건설에게 중요한 기회가 될 것으로 보이며, 대규모 프로젝트를 통해 회사의 성장에 기여할 것으로 기대됩니다.", "fetched_at": "2026-05-26 00:10:12"}, {"id": 84, "title": "오세훈 \"구청 회사에 鄭 측근 투자…현금 나눠먹기 부패카르텔\"(종합)", "url": "https://www.yna.co.kr/view/AKR20260525028751001", "source": "연합뉴스 경제", "published_at": "Mon, 25 May 2026 17:30:56 +0900", "summary": "오세훈 서울시장이 구청 소속 회사에 정무적 측근이 투자한 사실을 언급하며, 이를 현금 나눠먹기 부패 카르텔로 비판했습니다. 그는 이러한 행위가 공공의 신뢰를 저해하고 부패를 조장한다고 경고했습니다.", "fetched_at": "2026-05-26 00:10:12"}];
+
+    // 시장 카드
+    const metricsEl = document.getElementById('metrics');
+    market.forEach(d => {
+      const up = d.change_pct >= 0;
+      metricsEl.innerHTML += `
+        <div class="card">
+          <div class="name">${d.name}</div>
+          <div class="price">${d.price.toLocaleString()}</div>
+          <div class="${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${Math.abs(d.change_pct).toFixed(2)}%</div>
+        </div>`;
+    });
+
+    // 바 차트
+    new Chart(document.getElementById('barChart'), {
+      type: 'bar',
+      data: {
+        labels: market.map(d => d.name),
+        datasets: [{
+          data: market.map(d => d.change_pct),
+          backgroundColor: market.map(d => d.change_pct >= 0 ? '#26a69a' : '#ef5350'),
+        }],
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#aaa' }, grid: { display: false } },
+          y: { ticks: { color: '#aaa' }, grid: { color: '#2a2f45' } },
+        },
+      },
+    });
+
+    // 뉴스
+    const newsEl = document.getElementById('newsList');
+    news.forEach(n => {
+      newsEl.innerHTML += `
+        <div class="news-item">
+          <div class="source">${n.source} · ${n.fetched_at}</div>
+          <div class="title"><a href="${n.url}" target="_blank">${n.title}</a></div>
+          ${n.summary ? `<div class="summary">💡 ${n.summary}</div>` : ''}
+        </div>`;
+    });
+  </script>
+</body>
+</html>
