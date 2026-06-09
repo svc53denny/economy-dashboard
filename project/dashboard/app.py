@@ -16,7 +16,10 @@ from modules.market import fetch_fear_greed
 
 @st.cache_data(ttl=600)
 def _cached_fear_greed():
-    return fetch_fear_greed()
+    result = fetch_fear_greed()
+    if result is None:
+        raise RuntimeError("Fear & Greed 데이터 없음")
+    return result
 
 st.set_page_config(
     page_title="실시간 경제 소식 대시보드",
@@ -87,7 +90,10 @@ st.markdown("---")
 
 # ── Fear & Greed 섹션 ─────────────────────────────────────
 st.subheader("😱 CNN Fear & Greed Index")
-fg = _cached_fear_greed()
+try:
+    fg = _cached_fear_greed()
+except Exception:
+    fg = None
 
 if fg:
     score = fg["score"]
